@@ -1,4 +1,4 @@
-export const battlefield={width:1200,height:640};
+export const battlefield={width:1200,height:600};
 export const heroFormation=[
  {x:115,y:300,size:137},
  {x:280,y:370,size:131},

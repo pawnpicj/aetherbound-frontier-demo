@@ -4,11 +4,17 @@ Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + Typ
 
 ## Sanctuary environment
 
-The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The PC version serves the original 1983×793 PNG without an additional lossy encode, cropped behind a 1200×640 logical battlefield. Three heroes occupy the left column with two staggered to their right. Each round has its own enemy formation: five monsters placed farther back on the right when there is no boss, a solo boss, then five monsters with the boss behind their middle row. Foot positions determine sprite depth. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`.
+The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The PC version serves the original 1983×793 PNG without an additional lossy encode. Formations use a 1200×600 design grid. Three heroes occupy the left column with two staggered to their right. Each round has its own enemy formation: five monsters placed farther back on the right when there is no boss, a solo boss, then five monsters with the boss behind their middle row. Foot positions determine sprite depth. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`.
 
 ## PC rendering
 
-The battle's logical positions remain 1200×640. `src/rendering.ts` chooses a backing-canvas scale from the displayed width and device pixel ratio: at least 2× on desktop-sized arenas, capped at 3×. Phaser's game size and camera zoom use the same scale, preserving input coordinates and formation. ResizeObserver updates this when the arena width changes. Labels and floating combat text rasterize at that scale as well. Smooth texture filtering is retained for painted artwork. Desktop HUD text and action controls are larger. The canvas has more real rendering pixels; this does not invent additional detail in the source illustrations.
+The visible world is 600 units tall, with its width following the arena's aspect ratio. Formation X coordinates map proportionally from the 1200-unit design grid; sprite aspect ratios stay intact. `src/rendering.ts` chooses a backing-canvas scale from the displayed width and device pixel ratio: at least 2× on desktop-sized arenas, capped at 3×. Phaser's game size and camera zoom use the same scale, preserving input coordinates. ResizeObserver updates width and density when the arena changes size. Labels and floating combat text rasterize at that scale. Smooth texture filtering is retained for painted artwork. This does not invent additional detail in source illustrations.
+
+## Combat screen and action icons
+
+The PC screen follows `art-source/ui/combat-screen-reference-v9.png`: a wide battlefield with individual HP/BB panels above the five heroes, and five portrait action cards immediately below it. The battlefield height adapts to leave room for all cards in a normal PC viewport. Guard, All-out and Auto remain available in the arena toolbar. Secondary controls, target buttons and round progress remain below the main combat screen. Mobile uses horizontally scrollable cards.
+
+`src/combat-ui.ts` renders live hero HUDs and action buttons, including disabled, acted, fallen, BB charging and BB-ready states. New action tiles use Crossed swords and Crystal shine by Lorc from Game-icons.net (CC BY 3.0), with gold Attack treatment and elemental BB colors. Original SVG paths are preserved; credits and source links are in `public/assets/ui/CREDITS.md` and the app footer. `src/combat-ui.css` contains the screen layout. `design-qa.md` records visual comparisons and interaction checks.
 
 ## Complete roster artwork
 
