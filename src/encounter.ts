@@ -15,7 +15,7 @@ const mixedFormation=[
  {id:'boss',x:1035,y:440,size:280},
 ];
 export const encounters=[
- {id:'monsters',name:'Forest ambush',label:'รอบมอนสเตอร์',description:'มอนสเตอร์ 5 ตัว',formation:mixedFormation.filter(p=>p.id!=='boss').map(p=>({...p,x:p.x+120}))},
+ {id:'monsters',name:'Forest ambush',label:'รอบมอนสเตอร์',description:'มอนสเตอร์ 5 ตัว',formation:mixedFormation.filter(p=>p.id!=='boss').map(p=>({...p,x:p.x+300}))},
  {id:'boss',name:'The ancient guardian',label:'รอบบอส',description:'เผชิญบอสเดี่ยว',formation:[{id:'boss',x:900,y:500,size:340}]},
  {id:'mixed',name:'The final stand',label:'รอบผสม',description:'มอนสเตอร์คุ้มกันบอสด้านหลังตรงกลาง',formation:mixedFormation},
 ];

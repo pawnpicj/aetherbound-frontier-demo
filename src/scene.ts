@@ -2,15 +2,20 @@ import Phaser from 'phaser';
 import type {Battle,DamageHit} from './battle';
 import {sanctuaryEnvironment} from './environment';
 import {heroDesigns,bossDesign} from './characters';
-import {heroFormation,monsterArt} from './encounter';
+import {battlefield,heroFormation,monsterArt} from './encounter';
 type Sprite=Phaser.GameObjects.Image;
 const number=(hex:string)=>Phaser.Display.Color.HexStringToColor(hex).color;
 export class BattleScene extends Phaser.Scene {
  ready=false;heroes:Sprite[]=[];enemies=new Map<string,Sprite>();
  shield!:Phaser.GameObjects.Ellipse;selection!:Phaser.GameObjects.Ellipse;
  bars!:Phaser.GameObjects.Graphics;labels=new Map<string,Phaser.GameObjects.Text>();
- constructor(private state:()=>{battle:Battle;speed:number},private onHeroClick:(i:number)=>void,private onReady:()=>void,private onTargetClick:(id:string)=>void){super('battle')}
+ constructor(private state:()=>{battle:Battle;speed:number;renderScale:number},private onHeroClick:(i:number)=>void,private onReady:()=>void,private onTargetClick:(id:string)=>void){super('battle')}
  get battle(){return this.state().battle} get speed(){return this.state().speed}
+ get renderScale(){return this.state().renderScale}
+ updateViewport(){
+  this.cameras.main.setSize(battlefield.width*this.renderScale,battlefield.height*this.renderScale).setZoom(this.renderScale).centerOn(battlefield.width/2,battlefield.height/2);
+  for(const object of this.children.list)if(object instanceof Phaser.GameObjects.Text)object.setResolution(this.renderScale);
+ }
  later(ms:number,fn:()=>void){this.time.delayedCall(ms/this.speed,fn)}
  preload(){
   this.ready=false;this.load.image(sanctuaryEnvironment.texture,sanctuaryEnvironment.url);
@@ -25,12 +30,13 @@ export class BattleScene extends Phaser.Scene {
  }
  create(){
   this.heroes=[];this.enemies=new Map();this.labels=new Map();
+  this.updateViewport();
   this.add.image(600,240,sanctuaryEnvironment.texture).setDisplaySize(2000,800);
   for(let i=0;i<18;i++){const mote=this.add.circle(Phaser.Math.Between(50,1150),Phaser.Math.Between(120,570),1.6,0xd8e7bb,.4);this.tweens.add({targets:mote,y:mote.y-55,alpha:.04,duration:4200+i*90,yoyo:true,repeat:-1})}
   this.shield=this.add.ellipse(195,415,375,410,0x92dab7,.07).setStrokeStyle(2,0xa8e3be,.55).setVisible(false).setDepth(20);
   this.selection=this.add.ellipse(0,0,100,22,0xe6ce85,.13).setStrokeStyle(2,0xf5dda5,.9).setDepth(25);
   heroDesigns.forEach((design,i)=>{const p=heroFormation[i],sprite=this.makeSprite(p.x,p.y,p.size,design.id+'-painted',i);sprite.on('pointerdown',()=>this.onHeroClick(i));this.heroes.push(sprite)});
-  this.battle.wave.formation.forEach((p,i)=>{const enemy=this.battle.enemies.find(e=>e.id===p.id)!,sprite=this.makeSprite(p.x,p.y,p.size,enemy.variant+'-painted',i);sprite.on('pointerdown',()=>this.onTargetClick(p.id));this.enemies.set(p.id,sprite);if(!enemy.boss)this.labels.set(p.id,this.add.text(p.x,p.y+15,enemy.shortName,{fontFamily:'Georgia',fontSize:'13px',color:'#e4e6ce',stroke:'#16343a',strokeThickness:3}).setOrigin(.5,0).setDepth(1450))});
+  this.battle.wave.formation.forEach((p,i)=>{const enemy=this.battle.enemies.find(e=>e.id===p.id)!,sprite=this.makeSprite(p.x,p.y,p.size,enemy.variant+'-painted',i);sprite.on('pointerdown',()=>this.onTargetClick(p.id));this.enemies.set(p.id,sprite);if(!enemy.boss)this.labels.set(p.id,this.add.text(p.x,p.y+15,enemy.shortName,{fontFamily:'DM Sans, sans-serif',fontSize:'14px',fontStyle:'bold',color:'#eff2df',stroke:'#16343a',strokeThickness:3,resolution:this.renderScale}).setOrigin(.5,0).setDepth(1450))});
   this.bars=this.add.graphics().setDepth(1450);this.ready=true;this.sync();this.onReady();this.events.once('shutdown',()=>this.ready=false);
  }
  update(){if(!this.ready)return;for(const sprite of [...this.heroes,...this.enemies.values()]){sprite.setDepth(100+Math.round(sprite.y)+(sprite.getData('acting')?650:0));(sprite.getData('shadow') as Phaser.GameObjects.Ellipse).setPosition(sprite.x,sprite.y-2)}}
@@ -78,5 +84,5 @@ export class BattleScene extends Phaser.Scene {
  heal(){this.heroes.forEach((sprite,i)=>{if(this.battle.heroes[i].hp>0)this.float(sprite.x,sprite.y-115,'+650','#f4e5ad',22)})}
  ring(x:number,y:number,color:string,radius:number,duration:number){const ring=this.add.circle(x,y,radius,number(color),.08).setStrokeStyle(2,number(color),.75).setDepth(1500);this.tweens.add({targets:ring,scale:1.7,alpha:0,duration:duration/this.speed,onComplete:()=>ring.destroy()})}
  slash(x:number,y:number,color:string,radius:number,rotation:number){const arc=this.add.graphics().lineStyle(6,number(color),.85).setDepth(1500);arc.beginPath();arc.arc(x,y,radius,Phaser.Math.DegToRad(205+rotation),Phaser.Math.DegToRad(335+rotation));arc.strokePath();this.tweens.add({targets:arc,alpha:0,duration:330/this.speed,onComplete:()=>arc.destroy()})}
- float(x:number,y:number,text:string,color:string,size=24){const label=this.add.text(x,y,text,{fontFamily:'Georgia',fontSize:`${size}px`,color,stroke:'#16343a',strokeThickness:4}).setOrigin(.5).setDepth(2000);this.tweens.add({targets:label,y:y-40,alpha:0,duration:1000/this.speed,onComplete:()=>label.destroy()})}
+ float(x:number,y:number,text:string,color:string,size=24){const label=this.add.text(x,y,text,{fontFamily:'DM Sans, sans-serif',fontStyle:'bold',fontSize:`${size}px`,color,stroke:'#16343a',strokeThickness:3,resolution:this.renderScale}).setOrigin(.5).setDepth(2000);this.tweens.add({targets:label,y:y-40,alpha:0,duration:1000/this.speed,onComplete:()=>label.destroy()})}
 }

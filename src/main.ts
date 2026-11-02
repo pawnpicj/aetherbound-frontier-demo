@@ -7,6 +7,7 @@ import {galleryMarkup,mountGallery} from './gallery';
 import './style.css';
 import './encounter.css';
 import {battlefield,encounters} from './encounter';
+import {renderScaleFor} from './rendering';
 
 const $=<T extends HTMLElement=HTMLElement>(s:string)=>document.querySelector<T>(s)!;
 let battle=new Battle(),enemyBusy=false,auto=false,muted=true,speed=1,generation=0,pending=0,outcomePending=false;
@@ -67,8 +68,12 @@ function restart(){generation++;pending=0;outcomePending=false;$('#round-clear')
 function nextRound(){if(!battle.advanceWave())return;generation++;pending=0;outcomePending=false;enemyBusy=false;$('#round-clear').hidden=true;$('#spark-banner').classList.remove('show');scene.ready=false;scene.scene.restart();log(`Round ${battle.waveIndex+1}: ${battle.wave.name}. Living allies recover 35% HP and 20 BB.`);render()}
 $('#next-round').onclick=nextRound;
 function selectTarget(id:string){if(battle.selectTarget(id)){render();log(`Target: ${battle.target!.name}.`)}}
-scene=new BattleScene(()=>({battle,speed}),attack,()=>{render();if(auto)wait(700,()=>{if(auto)allOut()})},selectTarget);
-new Phaser.Game({type:Phaser.AUTO,parent:'game',width:battlefield.width,height:battlefield.height,backgroundColor:'#254b4d',transparent:false,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true},scene:scene,audio:{noAudio:true}});
+let renderScale=renderScaleFor($('#game').clientWidth,window.devicePixelRatio);
+scene=new BattleScene(()=>({battle,speed,renderScale}),attack,()=>{render();if(auto)wait(700,()=>{if(auto)allOut()})},selectTarget);
+const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:battlefield.width*renderScale,height:battlefield.height*renderScale,backgroundColor:'#254b4d',transparent:false,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true,antialiasGL:true},scene:scene,audio:{noAudio:true}});
+const updateResolution=()=>{const next=renderScaleFor($('#game').clientWidth,window.devicePixelRatio);if(next===renderScale)return;renderScale=next;game.scale.setGameSize(battlefield.width*renderScale,battlefield.height*renderScale);if(scene.ready)scene.updateViewport()};
+new ResizeObserver(updateResolution).observe($('#game'));
+window.addEventListener('resize',updateResolution);
 $('#all').onclick=allOut;$('#guard').onclick=()=>{if(!scene.ready||enemyBusy||pending||battle.status!=='playing')return;battle.guard=true;battle.heroes.forEach(h=>h.acted=true);log('Your squad takes a defensive stance. Incoming damage reduced by 65%.');render();enemy()};
 $('#auto').onclick=()=>{auto=!auto;render();if(auto&&battle.status==='wave-clear'&&!$('#round-clear').hidden)wait(700,()=>{if(auto)nextRound()});else if(auto&&!enemyBusy)allOut()};$('#restart').onclick=restart;$('#again').onclick=restart;
 $('#speed').onclick=()=>{speed=speed===1?2:1;$('#speed').innerHTML=`${speed}× <span>Speed</span>`};$('#sound').onclick=()=>{muted=!muted;$('#sound').classList.toggle('audible',!muted);$('#sound').setAttribute('aria-label',muted?'Enable sound':'Mute sound');tone(600,.15)};

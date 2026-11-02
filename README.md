@@ -4,7 +4,11 @@ Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + Typ
 
 ## Sanctuary environment
 
-The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The 2400×960 WebP is cropped behind a 1200×640 battlefield. Three heroes occupy the left column with two staggered to their right. Each round has its own enemy formation: five monsters, a solo boss, then five monsters with the boss behind their middle row. Foot positions determine sprite depth. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`. Re-encode with `node scripts/prepare-environment.mjs` using the same optional Sharp setup described below.
+The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The PC version serves the original 1983×793 PNG without an additional lossy encode, cropped behind a 1200×640 logical battlefield. Three heroes occupy the left column with two staggered to their right. Each round has its own enemy formation: five monsters placed farther back on the right when there is no boss, a solo boss, then five monsters with the boss behind their middle row. Foot positions determine sprite depth. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`.
+
+## PC rendering
+
+The battle's logical positions remain 1200×640. `src/rendering.ts` chooses a backing-canvas scale from the displayed width and device pixel ratio: at least 2× on desktop-sized arenas, capped at 3×. Phaser's game size and camera zoom use the same scale, preserving input coordinates and formation. ResizeObserver updates this when the arena width changes. Labels and floating combat text rasterize at that scale as well. Smooth texture filtering is retained for painted artwork. Desktop HUD text and action controls are larger. The canvas has more real rendering pixels; this does not invent additional detail in the source illustrations.
 
 ## Complete roster artwork
 

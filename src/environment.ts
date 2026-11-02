@@ -1,4 +1,4 @@
 export const sanctuaryEnvironment={
- texture:'sanctuary-painted-v4',
- url:'/assets/environments/hollow-sanctuary-v4.webp',
+ texture:'sanctuary-original-pc-v8',
+ url:'/assets/environments/hollow-sanctuary-pc-v8.png',
 };
