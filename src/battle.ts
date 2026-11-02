@@ -1,7 +1,7 @@
 import {encounters} from './encounter';
 export type Element='fire'|'water'|'earth'|'thunder'|'light';
 export type Status='playing'|'wave-clear'|'victory'|'defeat';
-export interface Hero {id:string;name:string;title:string;element:Element;color:string;hp:number;maxHp:number;bb:number;atk:number;acted:boolean;skill:string;role:string}
+export interface Hero {id:string;name:string;title:string;element:Element;color:string;hp:number;maxHp:number;bb:number;atk:number;acted:boolean;guarding:boolean;skill:string;role:string}
 export interface Enemy {id:string;name:string;shortName:string;variant:'bramble'|'wisp'|'hollowguard';hp:number;maxHp:number;atk:number;boss:boolean}
 export interface DamageHit {targetId:string;damage:number;spark:boolean}
 export interface HeroHit {i:number;damage:number;sources:string[]}
@@ -11,7 +11,7 @@ const roster=[
  {id:'orin',name:'Orin',title:'GROVE WARDEN',element:'earth',color:'#8acb9c',maxHp:2100,atk:250,bb:100,skill:'Emerald Aegis',role:'Shield'},
  {id:'ren',name:'Ren',title:'STORM STRIDER',element:'thunder',color:'#c7adfa',maxHp:1500,atk:360,bb:100,skill:'Thousand Skies',role:'Damage'},
  {id:'mira',name:'Mira',title:'DAWNKEEPER',element:'light',color:'#f3d788',maxHp:1600,atk:230,bb:48,skill:'First Light',role:'Heal'},
-] satisfies Omit<Hero,'hp'|'acted'>[];
+] satisfies Omit<Hero,'hp'|'acted'|'guarding'>[];
 const enemyRoster:Enemy[]=[
   {id:'bramble-1',name:'Bramble Imp I',shortName:'Bramble I',variant:'bramble',maxHp:1500,hp:1500,atk:90,boss:false},
   {id:'wisp-1',name:'Rift Wisp I',shortName:'Wisp I',variant:'wisp',maxHp:1150,hp:1150,atk:75,boss:false},
@@ -22,7 +22,7 @@ const enemyRoster:Enemy[]=[
  ];
 const createEnemies=(index:number)=>encounters[index].formation.map(slot=>({...enemyRoster.find(e=>e.id===slot.id)!}));
 export class Battle {
- heroes:Hero[]=roster.map(h=>({...h,hp:h.maxHp,acted:false}));
+ heroes:Hero[]=roster.map(h=>({...h,hp:h.maxHp,acted:false,guarding:false}));
  waveIndex=0;roundTurn=1;
  enemies:Enemy[]=createEnemies(0);
  turn=1;sparks=0;damage=0;status:Status='playing';shield=false;guard=false;selectedTarget=this.enemies[0].id;
@@ -39,11 +39,15 @@ export class Battle {
   if(this.status!=='wave-clear'||this.waveIndex>=encounters.length-1)return false;
   this.waveIndex++;this.enemies=createEnemies(this.waveIndex);this.selectedTarget=this.enemies[0].id;
   this.status='playing';this.roundTurn=1;this.turn++;this.shield=false;this.guard=false;this.lastHits.clear();
-  for(const hero of this.heroes){hero.acted=false;if(hero.hp>0){hero.hp=Math.min(hero.maxHp,hero.hp+Math.round(hero.maxHp*.35));hero.bb=Math.min(100,hero.bb+20)}}
+  for(const hero of this.heroes){hero.acted=false;hero.guarding=false;if(hero.hp>0){hero.hp=Math.min(hero.maxHp,hero.hp+Math.round(hero.maxHp*.35));hero.bb=Math.min(100,hero.bb+20)}}
   return true;
  }
  selectTarget(id:string){if(this.status!=='playing'||!this.enemies.some(e=>e.id===id&&e.hp>0))return false;this.selectedTarget=id;return true}
  canAct(i:number,burst=false){const h=this.heroes[i];return this.status==='playing'&&!!h&&h.hp>0&&!h.acted&&(!burst||h.bb>=100)}
+ guardHero(i:number){
+  if(!this.canAct(i))return false;
+  this.heroes[i].acted=true;this.heroes[i].guarding=true;return true;
+ }
  act(i:number,burst=false){
   if(!this.canAct(i,burst)||!this.target)return null;
   const h=this.heroes[i];h.acted=true;h.bb=burst?0:Math.min(100,h.bb+32);
@@ -74,7 +78,7 @@ export class Battle {
   if(this.status!=='playing')return {hits,attackerIds,heavy};
   const byHero=new Map<number,HeroHit>();
   const hurt=(i:number,amount:number,source:string)=>{
-   const hero=this.heroes[i],damage=Math.min(hero.hp,Math.round(amount*(this.shield?.5:1)*(this.guard?.35:1)));
+   const hero=this.heroes[i],damage=Math.min(hero.hp,Math.round(amount*(this.shield?.5:1)*(this.guard||hero.guarding?.35:1)));
    hero.hp-=damage;hero.bb=Math.min(100,hero.bb+12);
    const entry=byHero.get(i)??{i,damage:0,sources:[]};entry.damage+=damage;entry.sources.push(source);byHero.set(i,entry);
   };
@@ -90,7 +94,7 @@ export class Battle {
   }
   if(!livingHeroes().length)this.status='defeat';
   else{this.turn++;this.roundTurn++;this.heroes.forEach(h=>h.acted=false)}
-  this.guard=false;this.shield=false;this.lastHits.clear();hits.push(...byHero.values());
+  this.heroes.forEach(h=>h.guarding=false);this.guard=false;this.shield=false;this.lastHits.clear();hits.push(...byHero.values());
   return {hits,attackerIds,heavy};
  }
 }

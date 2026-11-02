@@ -9,10 +9,13 @@ import './encounter.css';
 import './combat-ui.css';
 import {battlefield,encounters} from './encounter';
 import {renderScaleFor} from './rendering';
+import {createFormation,swapHeroIntoSlot,loadFormation,saveFormation} from './formation';
+import {mountChapter} from './chapter-ui';
 
 const $=<T extends HTMLElement=HTMLElement>(s:string)=>document.querySelector<T>(s)!;
 let battle=new Battle(),enemyBusy=false,auto=false,muted=true,speed=1,generation=0,pending=0,outcomePending=false;
 let scene:BattleScene;let audio:AudioContext|undefined;
+let arranging=true,selectedHero=0,formation=loadFormation();
 let logs:string[]=['Your squad has entered the Hollow Sanctuary.'];
 const diamond='<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 2L29 16 16 30 3 16Z" stroke="currentColor"/><path d="M16 8L23 16 16 24 9 16Z" fill="currentColor"/><path d="M16 0V32M0 16H32" stroke="currentColor" opacity=".4"/></svg>';
 $('#app').innerHTML=`
@@ -21,14 +24,14 @@ $('#app').innerHTML=`
  <aside class="character-spotlight"><span class="spotlight-mark">✦</span><div><span class="eyebrow">THE COMPLETE ROSTER</span><p>A fellowship, reforged. <span>Five heroes. One ancient adversary.</span></p></div><button id="meet-characters">Meet the characters <span>↗</span></button></aside>
  <ol class="round-progress" id="round-progress" aria-label="Expedition rounds"></ol>
  <section class="arena-shell" aria-label="Battle arena"><div class="arena-top"><span class="encounter"><i></i> <span id="encounter-title">ROUND 1 / 3</span></span><span class="turn">TURN <b id="turn">01</b></span><button id="speed" class="speed">1× <span>Speed</span></button></div><div id="game" role="img" aria-label="Five heroes in two columns face five monsters and the Ancient Hollowguard"></div><div class="boss-hud"><div class="boss-name"><button id="boss-design" class="boss-design" aria-label="Explore Hollowguard character design"><span class="boss-element">❧</span> Ancient Hollowguard <small>Lv. 12</small><span class="view-arrow">↗</span></button><span id="boss-percent">100%</span></div><div class="boss-track"><div id="boss-hp"></div></div><div class="boss-sub"><span>GUARDIAN OF THE RUINS</span><span id="boss-hp-number">18,000 / 18,000</span></div></div><div class="canvas-caption"><span class="location-mark">◇</span> EMERALD RUINS <span class="live-dot"></span> <span id="phase">YOUR TURN</span></div><div id="spark-banner" class="spark-banner" aria-live="polite"></div><div id="enemy-intent" class="enemy-intent"><span>✦</span> Stone cleave <small>Next enemy action</small></div></section>
- <section id="round-clear" class="round-clear" hidden aria-live="polite"><div><span class="eyebrow">ROUND CLEARED</span><h2 id="round-clear-title"></h2><p id="round-clear-description"></p><p class="recovery-note">ฟื้น HP 35% และ BB +20 ให้ฮีโร่ที่ยังอยู่ ก่อนเข้ารอบถัดไป</p><button id="next-round" class="attack-button">รอบถัดไป →</button></div></section>
+ <section id="round-clear" class="round-clear" hidden aria-live="polite"><div><span class="eyebrow">ROUND CLEARED</span><h2 id="round-clear-title"></h2><p id="round-clear-description"></p><p class="recovery-note">ฟื้น HP 35% และ BB +20 ให้ฮีโร่ที่ยังอยู่ ก่อนเข้ารอบถัดไป</p><p class="next-round-notice">กำลังเข้าสู่รอบถัดไปอัตโนมัติ…</p></div></section>
  <section class="target-panel" aria-label="Choose an enemy target"><div class="target-heading"><span class="eyebrow">SELECT TARGET</span><span id="enemy-count"></span></div><div id="targets" class="target-list"></div><p id="target-help">แตะศัตรูบนสนาม หรือเลือกเป้าหมายจากปุ่มด้านบน</p></section>
  <section class="command-bar"><div class="squad-title"><span class="eyebrow">YOUR SQUAD</span><span id="squad-count">5 heroes standing</span></div><div class="commands"><button id="guard" class="guard-button" title="Reduce incoming damage for the squad (G)">⬡ <span>Guard</span></button><button id="all" class="attack-button">⚔ <span>All-out attack</span><kbd>SPACE</kbd></button><button id="auto" class="auto-button" aria-pressed="false"><i></i> AUTO</button></div></section>
  <section id="squad" class="squad" aria-label="Hero actions"></section>
  <section class="battle-bottom"><div class="hint"><span class="hint-symbol">✧</span><p><strong>Better together.</strong> Land hits close together to trigger <em>Spark</em> for 50% extra damage.</p></div><div class="battle-stats"><span>SPARKS <b id="sparks">0</b></span><span>TOTAL DAMAGE <b id="damage">0</b></span></div></section>
  <div class="battle-log"><span>BATTLE LOG</span><p id="log" aria-live="polite"></p></div>
  <footer><span>${diamond} A small world. A grand adventure.</span><span><a class="icon-credit" href="https://game-icons.net/about.html" target="_blank" rel="noopener">Action icons: Lorc · Game-icons.net · CC BY 3.0</a></span></footer></main>
- <dialog id="help-dialog"><button class="close-dialog" aria-label="Close instructions">×</button><span class="eyebrow">FIELD GUIDE</span><h2>Lead your squad.</h2><p>กด <b>Attack</b> ใต้ฮีโร่เพื่อโจมตี แต่ละตัวทำได้หนึ่งครั้งต่อเทิร์น หรือกด <b>All-out attack</b> ให้ทั้งทีมโจมตีประสานกัน</p><div class="guide-row"><b>◎ เป้าหมาย</b><span>แบ่งเป็น 3 รอบ: มอนสเตอร์ 5 ตัว → บอสเดี่ยว → รอบผสมที่บอสอยู่หลังตรงกลาง ปราบศัตรูในแต่ละรอบให้หมด แล้วกดรอบถัดไป ทีมเดิมจะฟื้น HP 35% และ BB +20 เฉพาะผู้ที่ยังอยู่</span></div><div class="guide-row"><b>✧ Spark</b><span>ฮิตจากคนละยูนิตที่โจมตีศัตรูตัวเดียวกันในเวลาใกล้กัน จะทำดาเมจเพิ่ม 50%</span></div><div class="guide-row"><b>◈ Brave Burst</b><span>เมื่อเกจ BB เต็ม กดปุ่มสกิลสีธาตุเพื่อใช้ท่าพิเศษ ท่าของสาย Damage กระจายดาเมจ 15% ไปยังศัตรูตัวอื่น Orin สร้างโล่ และ Mira ฟื้น HP ของเพื่อนที่ยังอยู่</span></div><div class="guide-row"><b>⬡ Guard</b><span>จบเทิร์นและลดดาเมจที่ทีมได้รับ 65% บอสจะโจมตีหนักทุกเทิร์นที่ 3</span></div><div class="guide-row"><b>⌨ Shortcuts</b><span>1–5 โจมตีด้วยฮีโร่ · Space โจมตีทั้งทีม · G ป้องกัน</span></div><button class="attack-button close-guide">Let's begin →</button></dialog>
+ <dialog id="help-dialog"><button class="close-dialog" aria-label="Close instructions">×</button><span class="eyebrow">FIELD GUIDE</span><h2>Lead your squad.</h2><p>กด <b>Attack</b> ใต้ฮีโร่เพื่อโจมตี แต่ละตัวทำได้หนึ่งครั้งต่อเทิร์น หรือกด <b>All-out attack</b> ให้ทั้งทีมโจมตีประสานกัน</p><div class="guide-row"><b>◎ เป้าหมาย</b><span>แบ่งเป็น 3 รอบ: มอนสเตอร์ 5 ตัว → บอสเดี่ยว → รอบผสมที่บอสอยู่หลังตรงกลาง ปราบศัตรูในแต่ละรอบให้หมด แล้วเข้าสู่รอบถัดไปอัตโนมัติ ทีมเดิมจะฟื้น HP 35% และ BB +20 เฉพาะผู้ที่ยังอยู่</span></div><div class="guide-row"><b>✧ Spark</b><span>ฮิตจากคนละยูนิตที่โจมตีศัตรูตัวเดียวกันในเวลาใกล้กัน จะทำดาเมจเพิ่ม 50%</span></div><div class="guide-row"><b>◈ Brave Burst</b><span>เมื่อเกจ BB เต็ม กดปุ่มสกิลสีธาตุเพื่อใช้ท่าพิเศษ ท่าของสาย Damage กระจายดาเมจ 15% ไปยังศัตรูตัวอื่น Orin สร้างโล่ และ Mira ฟื้น HP ของเพื่อนที่ยังอยู่</span></div><div class="guide-row"><b>⬡ Guard</b><span>จบเทิร์นและลดดาเมจที่ทีมได้รับ 65% บอสจะโจมตีหนักทุกเทิร์นที่ 3</span></div><div class="guide-row"><b>⌨ Shortcuts</b><span>1–5 โจมตีด้วยฮีโร่ · Space โจมตีทั้งทีม · G ป้องกัน</span></div><button class="attack-button close-guide">Let's begin →</button></dialog>
  <dialog id="result-dialog"><span class="result-symbol">✧</span><span class="eyebrow" id="result-label"></span><h2 id="result-title"></h2><p id="result-description"></p><div id="result-stats"></div><button class="attack-button" id="again">Another expedition ↗</button></dialog>
  ${galleryMarkup}`;
 mountCombatLayout();
@@ -37,54 +40,80 @@ function tone(freq=280,duration=.08){if(muted)return;try{audio??=new AudioContex
 function log(s:string){logs.unshift(s);logs=logs.slice(0,12);$('#log').textContent=s;$('#log').title=logs.join('\n')}
 const wait=(ms:number,fn:()=>void)=>{const gen=generation;window.setTimeout(()=>{if(gen===generation)fn()},ms/speed)};
 function render(){
+ const storyButton=document.querySelector<HTMLButtonElement>('#story-open');if(storyButton)storyButton.disabled=!arranging&&battle.status==='playing';
+ document.body.classList.toggle('is-arranging',arranging);
+ $('.formation-controls').hidden=!arranging;
+ $<HTMLButtonElement>('#start-battle').disabled=!scene?.ready;
+ $<HTMLButtonElement>('#reset-formation').disabled=!scene?.ready;
  $('#turn').textContent=String(battle.roundTurn).padStart(2,'0');$('#boss-hp').style.width=`${battle.bossHp/(battle.bossMax||1)*100}%`;$('#boss-percent').textContent=`${Math.ceil(battle.bossHp/(battle.bossMax||1)*100)}%`;$('#boss-hp-number').textContent=`${battle.bossHp.toLocaleString()} / ${battle.bossMax.toLocaleString()}`;
  $('.boss-hud').hidden=!battle.boss;
  $('#encounter-title').textContent=`ROUND ${battle.waveIndex+1} / ${encounters.length} · ${battle.wave.label}`;
  $('#game').setAttribute('aria-label',battle.wave.description);
  $('#round-progress').innerHTML=encounters.map((round,i)=>`<li class="${i===battle.waveIndex?'current':i<battle.waveIndex?'complete':''}" ${i===battle.waveIndex?'aria-current="step"':''}><b>${i<battle.waveIndex?'✓':String(i+1).padStart(2,'0')}</b><span>${round.label}<small>${round.description}</small></span></li>`).join('');
  $('#sparks').textContent=String(battle.sparks);$('#damage').textContent=battle.damage.toLocaleString();$('#squad-count').textContent=`${battle.heroes.filter(h=>h.hp>0).length} heroes standing`;
- $('#phase').textContent=!scene?.ready?'PREPARING':battle.status!=='playing'?battle.status==='wave-clear'?'ROUND CLEAR':battle.status.toUpperCase():enemyBusy?'ENEMY TURN':'YOUR TURN';
+ $('#phase').textContent=!scene?.ready?'PREPARING':arranging?'จัดตำแหน่งก่อนเริ่ม':battle.status!=='playing'?battle.status==='wave-clear'?'ROUND CLEAR':battle.status.toUpperCase():enemyBusy?'ENEMY TURN':'YOUR TURN';
  const heavy=battle.bossHp>0&&battle.roundTurn%3===0;$('#enemy-intent').classList.toggle('danger',heavy);$('#enemy-intent').innerHTML=`<span>${heavy?'⚠':'✦'}</span> ${heavy?'Cataclysm · All heroes':battle.bossHp>0?(battle.minions.length?'Stone cleave + monsters':'Stone cleave'):'Monsters attack'} <small>${heavy?'Heavy attack incoming':'Next enemy action'}</small>`;
  $('#enemy-count').textContent=`${battle.livingEnemies.length} / ${battle.enemies.length} enemies standing`;
  $('#targets').innerHTML=battle.enemies.map(e=>`<button data-target="${e.id}" class="target-button ${e.id===battle.selectedTarget?'selected':''} ${e.hp<=0?'defeated':''}" aria-pressed="${e.id===battle.selectedTarget}" ${e.hp<=0||battle.status!=='playing'?'disabled':''}><span>${e.boss?'♜':'◇'} ${e.shortName}</span><small>${e.hp>0?e.hp.toLocaleString()+' / '+e.maxHp.toLocaleString()+' HP':'DEFEATED'}</small><i style="--health:${e.hp/e.maxHp*100}%"></i></button>`).join('');
  $('#targets').querySelectorAll<HTMLButtonElement>('[data-target]').forEach(el=>el.onclick=()=>selectTarget(el.dataset.target!));
- $('#hero-huds').innerHTML=battle.heroes.map(fieldHud).join('');
- $('#squad').innerHTML=battle.heroes.map((h,i)=>heroCard(h,i,!!scene?.ready&&!enemyBusy&&battle.canAct(i),!!scene?.ready&&!enemyBusy&&battle.canAct(i,true))).join('');
+ $('#hero-huds').innerHTML=battle.heroes.map((h,i)=>fieldHud(h,i,formation[i])).join('');
+ $('#squad').innerHTML=battle.heroes.map((h,i)=>heroCard(h,i,!arranging&&!!scene?.ready&&!enemyBusy&&battle.canAct(i),!arranging&&!!scene?.ready&&!enemyBusy&&battle.canAct(i,true))).join('');
  $('#squad').querySelectorAll<HTMLButtonElement>('[data-view-character]').forEach(b=>b.onclick=()=>openCharacter(b.dataset.viewCharacter));
  $('#squad').querySelectorAll<HTMLButtonElement>('[data-attack]').forEach(el=>el.onclick=()=>attack(Number(el.dataset.attack)));
  $('#squad').querySelectorAll<HTMLButtonElement>('[data-burst]').forEach(el=>el.onclick=()=>attack(Number(el.dataset.burst),true));
- for(const id of ['all','guard'])$<HTMLButtonElement>('#'+id).disabled=!scene?.ready||enemyBusy||battle.status!=='playing'||battle.allActed||(id==='guard'&&pending>0);
- $<HTMLButtonElement>('#auto').disabled=!scene?.ready||battle.status==='victory'||battle.status==='defeat';
+ $('#squad').querySelectorAll<HTMLButtonElement>('[data-guard]').forEach(el=>el.onclick=()=>guardHero(Number(el.dataset.guard)));
+ for(const id of ['all','guard'])$<HTMLButtonElement>('#'+id).disabled=arranging||!scene?.ready||enemyBusy||battle.status!=='playing'||battle.allActed||(id==='guard'&&pending>0);
+ $<HTMLButtonElement>('#auto').disabled=arranging||!scene?.ready||battle.status==='victory'||battle.status==='defeat';
  $('#auto').classList.toggle('on',auto);$('#auto').setAttribute('aria-pressed',String(auto));
  if(scene?.ready)scene.sync();
 }
-function attack(i:number,burst=false){if(enemyBusy||!scene?.ready)return;const action=battle.act(i,burst);if(!action)return;pending++;const h=action.hero;log(burst?`${h.name} unleashes ${h.skill}${h.role==='Shield'?' · Squad shield activated':h.role==='Heal'?' · +650 HP to living allies':''}.`:`${h.name} attacks ${battle.target?.name}.`);render();scene.strike(i,burst,action.targetId);
+function attack(i:number,burst=false){if(arranging||enemyBusy||!scene?.ready)return;const action=battle.act(i,burst);if(!action)return;pending++;const h=action.hero;log(burst?`${h.name} unleashes ${h.skill}${h.role==='Shield'?' · Squad shield activated':h.role==='Heal'?' · +650 HP to living allies':''}.`:`${h.name} attacks ${battle.target?.name}.`);render();scene.strike(i,burst,action.targetId);
  if(burst&&h.role==='Heal')scene.heal();
  for(let hit=0;hit<action.hits;hit++)wait(380+hit*110,()=>{const r=battle.hit(i,action.power/action.hits,performance.now(),action.targetId,action.aoe);if(r.damage){r.hits.forEach(hit=>scene.impact(i,hit,burst));tone(r.spark?660:260,.07);if(r.spark){$('#spark-banner').textContent=`SPARK ×${battle.sparks}`;$('#spark-banner').classList.add('show');wait(700,()=>$('#spark-banner').classList.remove('show'))}}render();if(battle.status!=='playing')finish()});
  wait(450+action.hits*110,()=>{pending--;if(battle.status==='playing'&&battle.allActed&&pending===0)enemy()});
 }
-function allOut(){if(enemyBusy||battle.status!=='playing')return;battle.heroes.forEach((h,i)=>{if(battle.canAct(i))attack(i,h.bb>=100)})}
+function guardHero(i:number){if(arranging||enemyBusy||!scene?.ready||!battle.guardHero(i))return;log(`${battle.heroes[i].name} guards. Incoming damage reduced by 65% this turn.`);render();if(battle.allActed&&pending===0)enemy()}
+function allOut(){if(arranging||enemyBusy||battle.status!=='playing')return;battle.heroes.forEach((h,i)=>{if(battle.canAct(i))attack(i,h.bb>=100)})}
 function enemy(){if(enemyBusy||battle.status!=='playing'||pending>0)return;enemyBusy=true;render();wait(550,()=>{scene.enemyAttack(battle.bossHp>0&&battle.roundTurn%3===0);tone(100,.4);wait(450,()=>{const result=battle.enemyTurn();result.hits.forEach(x=>scene.heroDamage(x.i,x.damage));render();log(battle.status==='defeat'?'Your squad has fallen. The sanctuary awaits another challenger.':`${result.attackerIds.length} enemies strike. Turn ${battle.turn} begins.`);wait(700,()=>{enemyBusy=false;render();if(battle.status!=='playing')finish();else if(auto)wait(700,()=>{if(auto)allOut()})})})})}
-function finish(){if(outcomePending)return;outcomePending=true;if(battle.status==='wave-clear'){render();wait(950,()=>{$('#round-clear-title').textContent=`${battle.wave.label} ผ่านแล้ว`;$('#round-clear-description').textContent=`ต่อไป: ${encounters[battle.waveIndex+1].label} · ${encounters[battle.waveIndex+1].description}`;$('#round-clear').hidden=false;if(auto)wait(1600,()=>{if(auto)nextRound()})});return}if($<HTMLDialogElement>('#result-dialog').open)return;auto=false;render();wait(800,()=>{if($<HTMLDialogElement>('#result-dialog').open)return;const win=battle.status==='victory';$('#result-label').textContent=win?'EXPEDITION COMPLETE':'EXPEDITION ENDED';$('#result-title').textContent=win?'Sanctuary reclaimed.':'A light worth rekindling.';$('#result-description').textContent=win?'All three rounds cleared. The sanctuary is safe once more.':'Rally your heroes. Use Orin’s shield and guard against Cataclysm.';$('#result-stats').innerHTML=`<div><b>${battle.turn}</b><span>TURNS</span></div><div><b>${battle.sparks}</b><span>SPARKS</span></div><div><b>${battle.damage.toLocaleString()}</b><span>DAMAGE</span></div>`;$<HTMLDialogElement>('#result-dialog').showModal();tone(win?880:150,.5)})}
-function restart(){generation++;pending=0;outcomePending=false;$('#round-clear').hidden=true;battle=new Battle();enemyBusy=false;auto=false;$('#spark-banner').classList.remove('show');document.querySelectorAll<HTMLDialogElement>('dialog').forEach(d=>d.close());scene.ready=false;scene.scene.restart();log('A new expedition begins. Your squad is ready.');render()}
+function finish(){if(outcomePending)return;outcomePending=true;if(battle.status==='wave-clear'){render();wait(950,()=>{$('#round-clear-title').textContent=`${battle.wave.label} ผ่านแล้ว`;$('#round-clear-description').textContent=`ต่อไป: ${encounters[battle.waveIndex+1].label} · ${encounters[battle.waveIndex+1].description}`;$('#round-clear').hidden=false;wait(1600,nextRound)});return}if($<HTMLDialogElement>('#result-dialog').open)return;auto=false;render();wait(800,()=>{if($<HTMLDialogElement>('#result-dialog').open)return;const win=battle.status==='victory';$('#result-label').textContent=win?'EXPEDITION COMPLETE':'EXPEDITION ENDED';$('#result-title').textContent=win?'Sanctuary reclaimed.':'A light worth rekindling.';$('#result-description').textContent=win?'All three rounds cleared. The sanctuary is safe once more.':'Rally your heroes. Use Orin’s shield and guard against Cataclysm.';$('#result-stats').innerHTML=`<div><b>${battle.turn}</b><span>TURNS</span></div><div><b>${battle.sparks}</b><span>SPARKS</span></div><div><b>${battle.damage.toLocaleString()}</b><span>DAMAGE</span></div>`;$<HTMLDialogElement>('#result-dialog').showModal();tone(win?880:150,.5)})}
+function restart(){generation++;pending=0;outcomePending=false;arranging=true;log('');$('#round-clear').hidden=true;battle=new Battle();enemyBusy=false;auto=false;$('#spark-banner').classList.remove('show');document.querySelectorAll<HTMLDialogElement>('dialog').forEach(d=>d.close());scene.ready=false;scene.scene.restart();log('จัดตำแหน่งฮีโร่ แล้วกดเริ่มต่อสู้เมื่อพร้อม');render()}
 
 function nextRound(){if(!battle.advanceWave())return;generation++;pending=0;outcomePending=false;enemyBusy=false;$('#round-clear').hidden=true;$('#spark-banner').classList.remove('show');scene.ready=false;scene.scene.restart();log(`Round ${battle.waveIndex+1}: ${battle.wave.name}. Living allies recover 35% HP and 20 BB.`);render()}
-$('#next-round').onclick=nextRound;
 function selectTarget(id:string){if(battle.selectTarget(id)){render();log(`Target: ${battle.target!.name}.`)}}
 const logicalFieldWidth=()=>battlefield.height*$('#game').clientWidth/$('#game').clientHeight;
 let fieldWidth=logicalFieldWidth(),renderScale=renderScaleFor($('#game').clientWidth,window.devicePixelRatio);
-scene=new BattleScene(()=>({battle,speed,renderScale,fieldWidth}),attack,()=>{render();if(auto)wait(700,()=>{if(auto)allOut()})},selectTarget);
+function swapPosition(slotIndex:number){if(!arranging||!scene?.ready)return;formation=swapHeroIntoSlot(formation,selectedHero,slotIndex);saveFormation(formation);formation.forEach((p,i)=>scene.moveHero(i,p));log(`${battle.heroes[selectedHero].name} อยู่ช่อง ${slotIndex+1}`);render()}
+scene=new BattleScene(()=>({battle,speed,renderScale,fieldWidth,formation,arranging,selectedHero}),i=>{if(arranging){selectedHero=i;render()}else attack(i)},()=>{render();if(auto)wait(700,()=>{if(auto)allOut()})},selectTarget,(i,slot)=>{if(!arranging)return;selectedHero=i;if(slot!==null)swapPosition(slot);else{scene.moveHero(i,formation[i]);log('วางใกล้ช่องยืนเพื่อสลับตำแหน่ง');render()}});
 const game=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:Math.round(fieldWidth*renderScale),height:battlefield.height*renderScale,backgroundColor:'#254b4d',transparent:false,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true,antialiasGL:true},scene:scene,audio:{noAudio:true}});
 const updateResolution=()=>{const next=renderScaleFor($('#game').clientWidth,window.devicePixelRatio),width=logicalFieldWidth();if(next===renderScale&&Math.abs(width-fieldWidth)<.2)return;renderScale=next;fieldWidth=width;game.scale.setGameSize(Math.round(fieldWidth*renderScale),battlefield.height*renderScale);if(scene.ready){scene.updateViewport();scene.sync()}};
 new ResizeObserver(updateResolution).observe($('#game'));
+new ResizeObserver(()=>requestAnimationFrame(()=>game.scale.refresh())).observe($('.arena-shell'));
+for(const event of ['mousedown','touchstart'])game.canvas.addEventListener(event,()=>game.scale.refresh(),{capture:true,passive:true});
 window.addEventListener('resize',updateResolution);
-$('#all').onclick=allOut;$('#guard').onclick=()=>{if(!scene.ready||enemyBusy||pending||battle.status!=='playing')return;battle.guard=true;battle.heroes.forEach(h=>h.acted=true);log('Your squad takes a defensive stance. Incoming damage reduced by 65%.');render();enemy()};
-$('#auto').onclick=()=>{auto=!auto;render();if(auto&&battle.status==='wave-clear'&&!$('#round-clear').hidden)wait(700,()=>{if(auto)nextRound()});else if(auto&&!enemyBusy)allOut()};$('#restart').onclick=restart;$('#again').onclick=restart;
+const fullscreenButton=$<HTMLButtonElement>('#fullscreen');
+fullscreenButton.disabled=!document.fullscreenEnabled;
+fullscreenButton.onclick=async()=>{
+ try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}
+ catch{log('เปิดโหมดเต็มจอไม่ได้ โปรดลองอีกครั้งจากเบราว์เซอร์')}
+};
+document.addEventListener('fullscreenchange',()=>{
+ const active=!!document.fullscreenElement;fullscreenButton.setAttribute('aria-pressed',String(active));fullscreenButton.setAttribute('aria-label',active?'ออกจากเต็มจอ':'เต็มจอ');fullscreenButton.title=active?'ออกจากเต็มจอ':'เต็มจอ';fullscreenButton.querySelector('span')!.textContent=active?'Exit full screen':'Full screen';
+ requestAnimationFrame(()=>{updateResolution();game.scale.refresh()});
+});
+$('#start-battle').onclick=()=>{if(!arranging||!scene.ready||scene.heroes.some(s=>s.getData('dragging')))return;arranging=false;render();log('Your squad is ready. The expedition begins.')};
+$('#reset-formation').onclick=()=>{if(!arranging||!scene.ready)return;formation=createFormation();saveFormation(formation);formation.forEach((p,i)=>scene.moveHero(i,p));log('คืนตำแหน่งเริ่มต้นแล้ว');render()};
+$('#all').onclick=allOut;$('#guard').onclick=()=>{if(arranging||!scene.ready||enemyBusy||pending||battle.status!=='playing')return;battle.guard=true;battle.heroes.forEach(h=>h.acted=true);log('Your squad takes a defensive stance. Incoming damage reduced by 65%.');render();enemy()};
+$('#auto').onclick=()=>{auto=!auto;render();if(auto&&!enemyBusy)allOut()};$('#restart').onclick=restart;$('#again').onclick=restart;
 $('#speed').onclick=()=>{speed=speed===1?2:1;$('#speed').innerHTML=`${speed}× <span>Speed</span>`};$('#sound').onclick=()=>{muted=!muted;$('#sound').classList.toggle('audible',!muted);$('#sound').setAttribute('aria-label',muted?'Enable sound':'Mute sound');tone(600,.15)};
 $('#help').onclick=()=>$<HTMLDialogElement>('#help-dialog').showModal();document.querySelectorAll<HTMLButtonElement>('.close-dialog,.close-guide').forEach(b=>b.onclick=()=>$<HTMLDialogElement>('#help-dialog').close());
-document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||e.repeat||e.target instanceof HTMLButtonElement)return;if(e.code==='Space'){e.preventDefault();allOut()}else if(e.key.toLowerCase()==='g')$('#guard').click();else if(/^[1-5]$/.test(e.key))attack(Number(e.key)-1)});
+document.addEventListener('keydown',e=>{
+ if(document.querySelector('dialog[open]'))return;
+ if(arranging){if(e.code==='Space'&&!(e.target instanceof HTMLButtonElement))e.preventDefault();return}
+ if(e.repeat||e.target instanceof HTMLButtonElement)return;if(e.code==='Space'){e.preventDefault();allOut()}else if(e.key.toLowerCase()==='g')$('#guard').click();else if(/^[1-5]$/.test(e.key))attack(Number(e.key)-1)
+});
 const openCharacter=mountGallery(()=>{auto=false;render()});
 $('#meet-characters').onclick=()=>openCharacter();
 $('#boss-design').onclick=()=>openCharacter('hollowguard');
 render();log(logs[0]);
+mountChapter(()=>arranging||battle.status==='victory'||battle.status==='defeat');
 
