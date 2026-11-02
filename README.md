@@ -1,12 +1,14 @@
 # Aetherbound
 
-Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + TypeScript + Vite. Original SVG environment and squad art, plus a generated hand-painted Kael redesign; no Brave Frontier artwork is used.
+Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + TypeScript + Vite. All five heroes and the Hollowguard use original hand-painted raster artwork, with an original SVG environment; no Brave Frontier artwork is used.
 
-## Kael redesign
+## Complete roster artwork
 
-Kael now uses original hand-painted raster art generated with the built-in Imagegen tool. Six illustrated key poses are sequenced with Phaser movement, anticipation, impact and recovery timing. His card has a dedicated portrait, and **Explore his new look** opens a showcase with all six poses and an Original / New design comparison. The other four heroes retain their initial SVG artwork.
+Kael, Lyra, Orin, Ren, Mira and the Hollowguard each have six illustrated key poses created with the built-in Imagegen tool. Phaser sequences the poses with anticipation, attacks, hit reactions and recovery. Lyra casts water, Orin uses shield and root effects, Ren uses twin lightning slashes, Mira casts light and healing, and the boss charges Cataclysm. These are pose-based animation prototypes, not full frame-by-frame animation sets.
 
-Source artwork and the generation brief are in `art-source/`; runtime WebP assets are in `public/assets/kael/`. `scripts/prepare-kael.mjs` slices and packs the source atlas with alpha preserved. To regenerate the packed assets, install the optional `sharp` package or point `SHARP_MODULE` at an existing Sharp installation, then run `node scripts/prepare-kael.mjs`. Normal development and production builds do not need Sharp.
+**Meet the characters**, **View design** on a card, or the boss name opens a gallery with character tabs, all six poses and an Original / New design comparison. Source artwork and prompts are in `art-source/kael-brief.md` and `art-source/party/`; runtime WebP atlases and portraits are in `public/assets/kael/` and `public/assets/characters/`.
+
+To repack source images, install the optional `sharp` package or point `SHARP_MODULE` at an existing Sharp installation, then run `node scripts/prepare-kael.mjs` or `node scripts/prepare-party.mjs`. These scripts only slice, resize and pack the original images, preserving alpha. Normal development and production builds do not need Sharp.
 
 ## Run
 
@@ -23,4 +25,4 @@ Each living hero acts once per turn. Use Attack (keys 1–5) or a charged Brave 
 
 Prototype only: one encounter, five fixed heroes, no account or persistent progression. Mechanics are original demo rules, not a faithful reproduction of Brave Frontier formulas.
 
-`src/battle.ts`: battle rules independent of graphics. `src/art.ts`: SVG artwork. `src/main.ts`: Phaser animation and HTML controls. `src/style.css`: responsive interface.
+`src/battle.ts`: battle rules independent of graphics. `src/scene.ts`: Phaser pose animation and effects. `src/characters.ts`: character metadata and asset paths. `src/gallery.ts`: design gallery. `src/art.ts`: environment and original comparison art. `src/main.ts`: battle UI and orchestration.

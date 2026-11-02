@@ -1,0 +1,32 @@
+[
+  {
+    "id": "lyra",
+    "frames": 6,
+    "sourceSize": "1536x1024",
+    "alphaMean": 113.52544085184734
+  },
+  {
+    "id": "orin",
+    "frames": 6,
+    "sourceSize": "1536x1024",
+    "alphaMean": 127.82577006022136
+  },
+  {
+    "id": "ren",
+    "frames": 6,
+    "sourceSize": "1536x1024",
+    "alphaMean": 98.07997258504231
+  },
+  {
+    "id": "mira",
+    "frames": 6,
+    "sourceSize": "1536x1024",
+    "alphaMean": 105.80370330810547
+  },
+  {
+    "id": "hollowguard",
+    "frames": 6,
+    "sourceSize": "1536x1024",
+    "alphaMean": 131.4308179219564
+  }
+]
