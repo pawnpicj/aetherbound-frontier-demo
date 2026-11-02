@@ -1,0 +1,14 @@
+#game{aspect-ratio:15/8}
+.enemy-intent{bottom:auto;top:130px;right:3%}
+.target-panel{margin-top:16px;border:1px solid #667c6b40;border-radius:6px;padding:14px;background:#17282a99}
+.target-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+#enemy-count{font-size:10px;color:#9db19f}
+.target-list{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.target-button{position:relative;min-width:0;text-align:left;min-height:57px;padding:9px 11px 12px;background:#233535;border:1px solid #647b6855;border-radius:4px;overflow:hidden}
+.target-button span{display:block;font-size:11px;white-space:nowrap;color:#d6decf}
+.target-button small{display:block;font-size:8px;color:#8fa99c;margin-top:6px}
+.target-button i{display:block;position:absolute;bottom:0;left:0;width:var(--health);height:3px;background:#89ad87;transition:width .2s}
+.target-button:hover:not(:disabled){background:#304643}.target-button.selected{border-color:#dfc890;background:#3b4236}.target-button.selected span{color:#ffe1a4}.target-button.defeated{opacity:.4}
+#target-help{font-size:10px;color:#89a095;margin:11px 0 0}
+@media(max-width:850px){.target-list{display:flex;overflow:auto;gap:8px;padding:2px 2px 7px;scrollbar-width:thin;scrollbar-color:#52695c #132329}.target-button{flex:0 0 130px}.enemy-intent{top:110px;font-size:9px}}
+@media(max-width:580px){#game{aspect-ratio:15/8;overflow:visible}#game canvas{position:static;width:100%!important;margin-left:0!important;top:0}.boss-hud{top:39px;width:43%;right:3%}.boss-name{font-size:10px}.boss-name small{display:none}.boss-track{margin-top:3px}.boss-sub{margin-top:3px}.enemy-intent{top:78px;right:3%;font-size:6px;padding:4px 6px}.enemy-intent small{display:none}.arena-top{padding:8px 10px}.canvas-caption{bottom:5px;font-size:4px}.target-panel{padding:11px;margin-top:12px}.target-button{flex-basis:124px;min-height:56px}.target-heading .eyebrow{font-size:8px}#target-help{font-size:9px;line-height:1.6}.spark-banner{font-size:20px;left:43%;top:49%}}

@@ -4,7 +4,7 @@ Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + Typ
 
 ## Sanctuary environment
 
-The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The 2400×960 WebP background preserves the 2.5:1 battle layout; ambient motes and a restrained light pulse are rendered in Phaser. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`. Re-encode with `node scripts/prepare-environment.mjs` using the same optional Sharp setup described below.
+The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The 2400×960 WebP is cropped behind a 1200×640 battlefield. The formation follows the supplied diagram: three heroes in the left column and two staggered to their right; two monsters in the center-left and three center-right; the boss stands separately at the far right. Foot positions determine sprite depth. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`. Re-encode with `node scripts/prepare-environment.mjs` using the same optional Sharp setup described below.
 
 ## Complete roster artwork
 
@@ -25,7 +25,9 @@ Open the URL printed by Vite. Production: `npm run build`; deploy `dist/`. Check
 
 ## Play
 
-Each living hero acts once per turn. Use Attack (keys 1–5) or a charged Brave Burst. All-out attack (Space) coordinates all remaining heroes, using ready BBs. Hits from different heroes within 140 ms trigger Spark (+50% damage). Orin's BB gives a 50% squad damage reduction for the next enemy action. Mira heals living allies for 650 HP. Guard (G) ends the turn with a 65% squad reduction; it multiplies with Orin's shield. The boss attacks the squad every third turn. Auto, 2× playback, optional synthesized sound, instructions, victory/defeat and restart are included.
+Select any living enemy by clicking its sprite or its target button. Defeating all five monsters AND the boss wins the encounter; defeating the boss alone does not. The game selects another living enemy when the current target falls. Each surviving monster attacks during the enemy phase; defeated enemies cannot attack. Three Bramble Imps and two Rift Wisps use original six-pose artwork generated with built-in Imagegen; see `art-source/monsters/README.md` for prompts and `scripts/prepare-monsters.mjs` for packing.
+
+Each living hero acts once per turn. Use Attack (keys 1–5) or a charged Brave Burst. All-out attack (Space) coordinates all remaining heroes, using ready BBs. Hits from different heroes on the same target within 140 ms trigger Spark (+50% damage). Damage-role BBs splash 15% damage to other living enemies. Orin's BB gives a 50% squad damage reduction for the next enemy action. Mira heals living allies for 650 HP. Guard (G) ends the turn with a 65% squad reduction; it multiplies with Orin's shield. The living boss attacks the entire squad every third turn. Auto, 2× playback, optional synthesized sound, instructions, victory/defeat and restart are included.
 
 Prototype only: one encounter, five fixed heroes, no account or persistent progression. Mechanics are original demo rules, not a faithful reproduction of Brave Frontier formulas.
 
