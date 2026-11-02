@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.sites-runtime/
+output/
+.playwright-cli/
+*.log
