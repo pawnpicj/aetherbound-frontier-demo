@@ -1,6 +1,12 @@
 # Aetherbound
 
-Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + TypeScript + Vite. All characters and environment illustrations are original code-generated SVGs; no Brave Frontier artwork is used.
+Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + TypeScript + Vite. Original SVG environment and squad art, plus a generated hand-painted Kael redesign; no Brave Frontier artwork is used.
+
+## Kael redesign
+
+Kael now uses original hand-painted raster art generated with the built-in Imagegen tool. Six illustrated key poses are sequenced with Phaser movement, anticipation, impact and recovery timing. His card has a dedicated portrait, and **Explore his new look** opens a showcase with all six poses and an Original / New design comparison. The other four heroes retain their initial SVG artwork.
+
+Source artwork and the generation brief are in `art-source/`; runtime WebP assets are in `public/assets/kael/`. `scripts/prepare-kael.mjs` slices and packs the source atlas with alpha preserved. To regenerate the packed assets, install the optional `sharp` package or point `SHARP_MODULE` at an existing Sharp installation, then run `node scripts/prepare-kael.mjs`. Normal development and production builds do not need Sharp.
 
 ## Run
 
