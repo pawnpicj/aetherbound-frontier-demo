@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type {Battle,DamageHit} from './battle';
 import {sanctuaryEnvironment} from './environment';
 import {heroDesigns,bossDesign} from './characters';
-import {heroFormation,enemyFormation,monsterArt} from './encounter';
+import {heroFormation,monsterArt} from './encounter';
 type Sprite=Phaser.GameObjects.Image;
 const number=(hex:string)=>Phaser.Display.Color.HexStringToColor(hex).color;
 export class BattleScene extends Phaser.Scene {
@@ -30,7 +30,7 @@ export class BattleScene extends Phaser.Scene {
   this.shield=this.add.ellipse(195,415,375,410,0x92dab7,.07).setStrokeStyle(2,0xa8e3be,.55).setVisible(false).setDepth(20);
   this.selection=this.add.ellipse(0,0,100,22,0xe6ce85,.13).setStrokeStyle(2,0xf5dda5,.9).setDepth(25);
   heroDesigns.forEach((design,i)=>{const p=heroFormation[i],sprite=this.makeSprite(p.x,p.y,p.size,design.id+'-painted',i);sprite.on('pointerdown',()=>this.onHeroClick(i));this.heroes.push(sprite)});
-  enemyFormation.forEach((p,i)=>{const enemy=this.battle.enemies.find(e=>e.id===p.id)!,sprite=this.makeSprite(p.x,p.y,p.size,enemy.variant+'-painted',i);sprite.on('pointerdown',()=>this.onTargetClick(p.id));this.enemies.set(p.id,sprite);if(!enemy.boss)this.labels.set(p.id,this.add.text(p.x,p.y+15,enemy.shortName,{fontFamily:'Georgia',fontSize:'13px',color:'#e4e6ce',stroke:'#16343a',strokeThickness:3}).setOrigin(.5,0).setDepth(1450))});
+  this.battle.wave.formation.forEach((p,i)=>{const enemy=this.battle.enemies.find(e=>e.id===p.id)!,sprite=this.makeSprite(p.x,p.y,p.size,enemy.variant+'-painted',i);sprite.on('pointerdown',()=>this.onTargetClick(p.id));this.enemies.set(p.id,sprite);if(!enemy.boss)this.labels.set(p.id,this.add.text(p.x,p.y+15,enemy.shortName,{fontFamily:'Georgia',fontSize:'13px',color:'#e4e6ce',stroke:'#16343a',strokeThickness:3}).setOrigin(.5,0).setDepth(1450))});
   this.bars=this.add.graphics().setDepth(1450);this.ready=true;this.sync();this.onReady();this.events.once('shutdown',()=>this.ready=false);
  }
  update(){if(!this.ready)return;for(const sprite of [...this.heroes,...this.enemies.values()]){sprite.setDepth(100+Math.round(sprite.y)+(sprite.getData('acting')?650:0));(sprite.getData('shadow') as Phaser.GameObjects.Ellipse).setPosition(sprite.x,sprite.y-2)}}

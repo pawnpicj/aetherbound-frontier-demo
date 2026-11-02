@@ -1,9 +1,16 @@
 #game{aspect-ratio:15/8}
+.round-progress{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;margin:0 0 16px}
+.round-progress li{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid #667c6b40;background:#17282a66;border-radius:5px;color:#718c7e}
+.round-progress li>b{font:23px Georgia;color:#819789}.round-progress li>span{font-size:12px}.round-progress small{display:block;font-size:9px;line-height:1.6;margin-top:4px;color:#789387}
+.round-progress .current{border-color:#d2c09a88;background:#343d32}.round-progress .current>b,.round-progress .current>span{color:#e6d3ab}.round-progress .complete>b{color:#b3d59f}
+.round-clear{border:1px solid #d2c09a88;border-radius:6px;background:radial-gradient(at 50% 0%,#36483d,#18292b);text-align:center;padding:24px 16px;margin-top:16px}.round-clear[hidden],.boss-hud[hidden]{display:none!important}
+.round-clear h2{font:28px Georgia;margin:13px 0;color:#ebdbb9}.round-clear p{font-size:12px;color:#b4c5b3;line-height:1.8;margin:10px 0}.round-clear .recovery-note{font-size:10px;color:#8eac97}.round-clear button{margin-top:8px;min-height:44px}
 .enemy-intent{bottom:auto;top:130px;right:3%}
 .target-panel{margin-top:16px;border:1px solid #667c6b40;border-radius:6px;padding:14px;background:#17282a99}
 .target-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
 #enemy-count{font-size:10px;color:#9db19f}
 .target-list{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.target-list:has(>.target-button:only-child){grid-template-columns:minmax(180px,300px)}
 .target-button{position:relative;min-width:0;text-align:left;min-height:57px;padding:9px 11px 12px;background:#233535;border:1px solid #647b6855;border-radius:4px;overflow:hidden}
 .target-button span{display:block;font-size:11px;white-space:nowrap;color:#d6decf}
 .target-button small{display:block;font-size:8px;color:#8fa99c;margin-top:6px}
@@ -12,3 +19,4 @@
 #target-help{font-size:10px;color:#89a095;margin:11px 0 0}
 @media(max-width:850px){.target-list{display:flex;overflow:auto;gap:8px;padding:2px 2px 7px;scrollbar-width:thin;scrollbar-color:#52695c #132329}.target-button{flex:0 0 130px}.enemy-intent{top:110px;font-size:9px}}
 @media(max-width:580px){#game{aspect-ratio:15/8;overflow:visible}#game canvas{position:static;width:100%!important;margin-left:0!important;top:0}.boss-hud{top:39px;width:43%;right:3%}.boss-name{font-size:10px}.boss-name small{display:none}.boss-track{margin-top:3px}.boss-sub{margin-top:3px}.enemy-intent{top:78px;right:3%;font-size:6px;padding:4px 6px}.enemy-intent small{display:none}.arena-top{padding:8px 10px}.canvas-caption{bottom:5px;font-size:4px}.target-panel{padding:11px;margin-top:12px}.target-button{flex-basis:124px;min-height:56px}.target-heading .eyebrow{font-size:8px}#target-help{font-size:9px;line-height:1.6}.spark-banner{font-size:20px;left:43%;top:49%}}
+@media(max-width:580px){.round-progress{gap:5px;margin-bottom:12px}.round-progress li{gap:7px;padding:10px 7px;align-items:flex-start}.round-progress li>b{font-size:17px}.round-progress li>span{font-size:11px;line-height:1.5}.round-progress small{font-size:8px;line-height:1.6}.round-clear h2{font-size:23px}.round-clear p{font-size:10px}.round-clear .recovery-note{font-size:9px}.encounter{font-size:6px;letter-spacing:.5px;gap:4px}}

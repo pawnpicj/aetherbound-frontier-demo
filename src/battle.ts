@@ -1,5 +1,6 @@
+import {encounters} from './encounter';
 export type Element='fire'|'water'|'earth'|'thunder'|'light';
-export type Status='playing'|'victory'|'defeat';
+export type Status='playing'|'wave-clear'|'victory'|'defeat';
 export interface Hero {id:string;name:string;title:string;element:Element;color:string;hp:number;maxHp:number;bb:number;atk:number;acted:boolean;skill:string;role:string}
 export interface Enemy {id:string;name:string;shortName:string;variant:'bramble'|'wisp'|'hollowguard';hp:number;maxHp:number;atk:number;boss:boolean}
 export interface DamageHit {targetId:string;damage:number;spark:boolean}
@@ -11,9 +12,7 @@ const roster=[
  {id:'ren',name:'Ren',title:'STORM STRIDER',element:'thunder',color:'#c7adfa',maxHp:1500,atk:360,bb:100,skill:'Thousand Skies',role:'Damage'},
  {id:'mira',name:'Mira',title:'DAWNKEEPER',element:'light',color:'#f3d788',maxHp:1600,atk:230,bb:48,skill:'First Light',role:'Heal'},
 ] satisfies Omit<Hero,'hp'|'acted'>[];
-export class Battle {
- heroes:Hero[]=roster.map(h=>({...h,hp:h.maxHp,acted:false}));
- enemies:Enemy[]=[
+const enemyRoster:Enemy[]=[
   {id:'bramble-1',name:'Bramble Imp I',shortName:'Bramble I',variant:'bramble',maxHp:1500,hp:1500,atk:90,boss:false},
   {id:'wisp-1',name:'Rift Wisp I',shortName:'Wisp I',variant:'wisp',maxHp:1150,hp:1150,atk:75,boss:false},
   {id:'bramble-2',name:'Bramble Imp II',shortName:'Bramble II',variant:'bramble',maxHp:1500,hp:1500,atk:90,boss:false},
@@ -21,15 +20,28 @@ export class Battle {
   {id:'bramble-3',name:'Bramble Imp III',shortName:'Bramble III',variant:'bramble',maxHp:1500,hp:1500,atk:90,boss:false},
   {id:'boss',name:'Ancient Hollowguard',shortName:'Hollowguard',variant:'hollowguard',maxHp:15000,hp:15000,atk:360,boss:true},
  ];
- turn=1;sparks=0;damage=0;status:Status='playing';shield=false;guard=false;selectedTarget='bramble-1';
+const createEnemies=(index:number)=>encounters[index].formation.map(slot=>({...enemyRoster.find(e=>e.id===slot.id)!}));
+export class Battle {
+ heroes:Hero[]=roster.map(h=>({...h,hp:h.maxHp,acted:false}));
+ waveIndex=0;roundTurn=1;
+ enemies:Enemy[]=createEnemies(0);
+ turn=1;sparks=0;damage=0;status:Status='playing';shield=false;guard=false;selectedTarget=this.enemies[0].id;
  private lastHits=new Map<string,{time:number;unit:string}>();
- get boss(){return this.enemies.find(e=>e.boss)!}
- get bossMax(){return this.boss.maxHp}
- get bossHp(){return this.boss.hp}
- set bossHp(value:number){this.boss.hp=Math.max(0,Math.min(this.boss.maxHp,value))}
+ get wave(){return encounters[this.waveIndex]}
+ get boss(){return this.enemies.find(e=>e.boss)}
+ get bossMax(){return this.boss?.maxHp??0}
+ get bossHp(){return this.boss?.hp??0}
+ set bossHp(value:number){if(this.boss)this.boss.hp=Math.max(0,Math.min(this.boss.maxHp,value))}
  get minions(){return this.enemies.filter(e=>!e.boss)}
  get livingEnemies(){return this.enemies.filter(e=>e.hp>0)}
  get target(){return this.enemies.find(e=>e.id===this.selectedTarget&&e.hp>0)??this.livingEnemies[0]}
+ advanceWave(){
+  if(this.status!=='wave-clear'||this.waveIndex>=encounters.length-1)return false;
+  this.waveIndex++;this.enemies=createEnemies(this.waveIndex);this.selectedTarget=this.enemies[0].id;
+  this.status='playing';this.roundTurn=1;this.turn++;this.shield=false;this.guard=false;this.lastHits.clear();
+  for(const hero of this.heroes){hero.acted=false;if(hero.hp>0){hero.hp=Math.min(hero.maxHp,hero.hp+Math.round(hero.maxHp*.35));hero.bb=Math.min(100,hero.bb+20)}}
+  return true;
+ }
  selectTarget(id:string){if(this.status!=='playing'||!this.enemies.some(e=>e.id===id&&e.hp>0))return false;this.selectedTarget=id;return true}
  canAct(i:number,burst=false){const h=this.heroes[i];return this.status==='playing'&&!!h&&h.hp>0&&!h.acted&&(!burst||h.bb>=100)}
  act(i:number,burst=false){
@@ -52,13 +64,13 @@ export class Battle {
   apply(target,raw,spark);
   if(aoe)for(const other of this.livingEnemies)if(other.id!==target.id)apply(other,Math.max(1,Math.round(raw*.15)),false);
   if(spark)this.sparks++;
-  if(this.livingEnemies.length===0)this.status='victory';
+  if(this.livingEnemies.length===0)this.status=this.waveIndex===encounters.length-1?'victory':'wave-clear';
   else if(!this.enemies.some(e=>e.id===this.selectedTarget&&e.hp>0))this.selectedTarget=this.livingEnemies[0].id;
   return {damage:hits.reduce((sum,h)=>sum+h.damage,0),spark,hits};
  }
  get allActed(){return this.heroes.every(h=>h.hp<=0||h.acted)}
  enemyTurn(){
-  const hits:HeroHit[]=[];const attackerIds:string[]=[];const heavy=this.turn%3===0;
+  const hits:HeroHit[]=[];const attackerIds:string[]=[];const heavy=this.bossHp>0&&this.roundTurn%3===0;
   if(this.status!=='playing')return {hits,attackerIds,heavy};
   const byHero=new Map<number,HeroHit>();
   const hurt=(i:number,amount:number,source:string)=>{
@@ -67,9 +79,9 @@ export class Battle {
    const entry=byHero.get(i)??{i,damage:0,sources:[]};entry.damage+=damage;entry.sources.push(source);byHero.set(i,entry);
   };
   const livingHeroes=()=>this.heroes.map((h,i)=>({h,i})).filter(x=>x.h.hp>0);
-  if(this.boss.hp>0){
+  if(this.boss&&this.boss.hp>0&&livingHeroes().length){
    attackerIds.push(this.boss.id);const alive=livingHeroes();
-   const targets=heavy?alive:[alive[(this.turn-1)%alive.length],alive[this.turn%alive.length]].filter((x,i,a)=>a.findIndex(y=>y.i===x.i)===i);
+   const targets=heavy?alive:[alive[(this.roundTurn-1)%alive.length],alive[this.roundTurn%alive.length]].filter((x,i,a)=>a.findIndex(y=>y.i===x.i)===i);
    for(const {i} of targets)hurt(i,heavy?520:this.boss.atk,this.boss.id);
   }
   for(const [index,enemy] of this.minions.entries()){
@@ -77,7 +89,7 @@ export class Battle {
    attackerIds.push(enemy.id);hurt(alive[(this.turn+index)%alive.length].i,enemy.atk,enemy.id);
   }
   if(!livingHeroes().length)this.status='defeat';
-  else{this.turn++;this.heroes.forEach(h=>h.acted=false)}
+  else{this.turn++;this.roundTurn++;this.heroes.forEach(h=>h.acted=false)}
   this.guard=false;this.shield=false;this.lastHits.clear();hits.push(...byHero.values());
   return {hits,attackerIds,heavy};
  }
