@@ -1,6 +1,10 @@
 # Aetherbound
 
-Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + TypeScript + Vite. All five heroes and the Hollowguard use original hand-painted raster artwork, with an original SVG environment; no Brave Frontier artwork is used.
+Original browser battle demo inspired by elemental squad RPGs. Phaser 3.90 + TypeScript + Vite. All five heroes, the Hollowguard and the sanctuary background use original illustrated raster artwork; no Brave Frontier artwork is used.
+
+## Sanctuary environment
+
+The battle arena uses a painted forest cathedral ruin with an open stone terrace, distant waterfall and mist. The 2400×960 WebP background preserves the 2.5:1 battle layout; ambient motes and a restrained light pulse are rendered in Phaser. Source artwork and the Imagegen prompt are in `art-source/environments/`; the runtime asset is in `public/assets/environments/`. Re-encode with `node scripts/prepare-environment.mjs` using the same optional Sharp setup described below.
 
 ## Complete roster artwork
 

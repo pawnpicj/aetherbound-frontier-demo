@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type {Battle} from './battle';
-import {landscape} from './art';
+import {sanctuaryEnvironment} from './environment';
 import {heroDesigns,bossDesign} from './characters';
 type State=()=>{battle:Battle;speed:number};
 const colorNumber=(hex:string)=>Phaser.Display.Color.HexStringToColor(hex).color;
@@ -16,14 +16,14 @@ export class BattleScene extends Phaser.Scene {
  later(ms:number,fn:()=>void){this.time.delayedCall(ms/this.speed,fn)}
  preload(){
   this.ready=false;
-  this.load.svg('landscape','data:image/svg+xml;base64,'+btoa(landscape));
+  this.load.image(sanctuaryEnvironment.texture,sanctuaryEnvironment.url);
   for(const design of [...heroDesigns,bossDesign])this.load.spritesheet(design.id+'-painted',design.atlas,{frameWidth:512,frameHeight:512});
  }
  create(){
   this.heroes=[];
-  this.backdrop=this.add.image(600,240,'landscape').setDisplaySize(1200,480);
-  const sun=this.add.ellipse(655,110,150,150,0xe5e4bf,.035);
-  this.tweens.add({targets:sun,alpha:.2,scale:1.3,duration:4000,yoyo:true,repeat:-1});
+  this.backdrop=this.add.image(600,240,sanctuaryEnvironment.texture).setDisplaySize(1200,480);
+  const light=this.add.ellipse(610,160,170,100,0xe5e4bf,.025);
+  this.tweens.add({targets:light,alpha:.065,scale:1.1,duration:4500,yoyo:true,repeat:-1});
   for(let i=0;i<20;i++){
    const mote=this.add.circle(Phaser.Math.Between(100,1100),Phaser.Math.Between(140,440),Phaser.Math.FloatBetween(1,2.4),0xd8e7bb,.45);
    this.tweens.add({targets:mote,y:mote.y-60,x:mote.x+25,alpha:.05,duration:Phaser.Math.Between(3500,6500),yoyo:true,repeat:-1,delay:i*150});
